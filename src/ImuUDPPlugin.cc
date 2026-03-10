@@ -270,6 +270,7 @@ private:
 
 GZ_ADD_PLUGIN(gz::sim::ImuUDPPlugin,
               gz::sim::System,
-              gz::sim::ISystemConfigure)
+              gz::sim::ISystemConfigure,
+              gz::sim::ISystemPostUpdate)
 
 GZ_ADD_PLUGIN_ALIAS(gz::sim::ImuUDPPlugin, "imu_udp_plugin")
