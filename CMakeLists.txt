@@ -1,16 +1,24 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.22)
 
-project(imu_udp_plugin)
+project(imu_udp_plugin CXX)
 
-find_package(gazebo REQUIRED)
+find_package(gz-cmake4 REQUIRED)
 
-include_directories(
-    ${GAZEBO_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/msgpack/include
-    )
+gz_find_package(gz-plugin REQUIRED COMPONENTS register)
+gz_find_package(gz-sim REQUIRED)
+gz_find_package(gz-transport REQUIRED)
+gz_find_package(gz-msgs REQUIRED)
 
-add_library(ImuUDPPlugin SHARED ImuUDPPlugin.cc)
+add_library(ImuUDPPlugin SHARED src/ImuUDPPlugin.cc)
+set_property(TARGET ImuUDPPlugin PROPERTY CXX_STANDARD 17)
+
+target_include_directories(ImuUDPPlugin
+  PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/msgpack/include)
 
 target_link_libraries(ImuUDPPlugin
-  ${GAZEBO_LIBRARIES}
-)
+  PRIVATE
+    gz-plugin::gz-plugin
+    gz-sim::gz-sim
+    gz-transport::gz-transport
+    gz-msgs::gz-msgs)
