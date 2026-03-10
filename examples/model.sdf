@@ -1,0 +1,15 @@
+<sensor name="imu_sensor" type="imu">
+  <update_rate>1000</update_rate>
+
+  <plugin name="imu_udp_plugin" filename="libImuUDPPlugin.so">
+
+    <address>192.168.1.50</address>
+    <port>5005</port>
+
+    <binary>true</binary>
+    <send_orientation>true</send_orientation>
+
+    <rate_limit>1000</rate_limit>
+
+  </plugin>
+</sensor>
