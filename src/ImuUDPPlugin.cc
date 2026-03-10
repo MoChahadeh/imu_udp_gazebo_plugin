@@ -170,17 +170,13 @@ private:
     {
       const auto &stamp = _msg.header().stamp();
       return static_cast<double>(stamp.sec()) +
-             static_cast<double>(stamp.nsec()) * 1e-9;
+            static_cast<double>(stamp.nsec()) * 1e-9;
     }
-    if (_msg.has_time())
-    {
-      const auto &stamp = _msg.time();
-      return static_cast<double>(stamp.sec()) +
-             static_cast<double>(stamp.nsec()) * 1e-9;
-    }
+
     return 0.0;
   }
 
+  
   void NetworkLoop()
   {
     while (running)
