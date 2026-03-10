@@ -4,7 +4,7 @@
 #include <gz/sim/Sensor.hh>
 #include <gz/sim/components/Imu.hh>
 #include <gz/sim/components/Sensor.hh>
-#include <gz/sim/components/SensorTopic.hh>
+
 #include <gz/transport/Node.hh>
 #include <gz/msgs/imu.pb.h>
 
