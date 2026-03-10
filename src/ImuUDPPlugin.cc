@@ -4,7 +4,7 @@
 #include <gz/sim/Sensor.hh>
 #include <gz/sim/components/Imu.hh>
 #include <gz/sim/components/Sensor.hh>
-#include <gz/sim/components/SensorTopic.hh>
+
 #include <gz/transport/Node.hh>
 #include <gz/msgs/imu.pb.h>
 
@@ -41,7 +41,8 @@ struct ImuPacket
 };
 
 class ImuUDPPlugin : public System,
-                     public ISystemConfigure
+                     public ISystemConfigure,
+                     public ISystemPostUpdate
 {
 public:
   ImuUDPPlugin() = default;
@@ -69,14 +70,7 @@ public:
       return;
     }
 
-    Sensor sensor(_entity);
-    auto topic = sensor.Topic(_ecm);
-    if (!topic)
-    {
-      gzerr << "Failed to resolve IMU sensor topic" << std::endl;
-      return;
-    }
-
+    entity = _entity;
     address = "127.0.0.1";
     port = 5005;
 
@@ -86,17 +80,36 @@ public:
     if (_sdf && _sdf->HasElement("port"))
       port = _sdf->Get<int>("port");
 
-    if (!SetupSocket())
+    socketReady = SetupSocket();
+    if (!socketReady)
       return;
 
-        if (!node.Subscribe(*topic, &ImuUDPPlugin::OnImuMsg, this))
+    gzmsg << "IMU UDP plugin waiting for sensor topic before subscribing" << std::endl;
+  }
+
+  void PostUpdate(const UpdateInfo & /*_info*/,
+                  const EntityComponentManager &_ecm) override
+  {
+    if (!socketReady || subscriptionStarted || subscriptionFailed ||
+        entity == kNullEntity)
     {
-      gzerr << "Failed to subscribe to IMU topic ['" << *topic << "']"
-            << std::endl;
-      running = false;
       return;
     }
 
+    Sensor sensor(entity);
+    auto topic = sensor.Topic(_ecm);
+    if (!topic)
+      return;
+
+    if (!node.Subscribe(*topic, &ImuUDPPlugin::OnImuMsg, this))
+    {
+      gzerr << "Failed to subscribe to IMU topic ['" << *topic << "']"
+            << std::endl;
+      subscriptionFailed = true;
+      return;
+    }
+
+    subscriptionStarted = true;
     running = true;
     netThread = std::thread(&ImuUDPPlugin::NetworkLoop, this);
 
@@ -170,17 +183,13 @@ private:
     {
       const auto &stamp = _msg.header().stamp();
       return static_cast<double>(stamp.sec()) +
-             static_cast<double>(stamp.nsec()) * 1e-9;
+            static_cast<double>(stamp.nsec()) * 1e-9;
     }
-    if (_msg.has_time())
-    {
-      const auto &stamp = _msg.time();
-      return static_cast<double>(stamp.sec()) +
-             static_cast<double>(stamp.nsec()) * 1e-9;
-    }
+
     return 0.0;
   }
 
+  
   void NetworkLoop()
   {
     while (running)
@@ -246,6 +255,11 @@ private:
   std::mutex queueMutex;
   std::queue<ImuPacket> queue;
 
+  Entity entity{kNullEntity};
+  bool socketReady{false};
+  bool subscriptionStarted{false};
+  bool subscriptionFailed{false};
+
   std::atomic<bool> running{false};
   std::atomic<uint64_t> seq{0};
 };
@@ -256,6 +270,7 @@ private:
 
 GZ_ADD_PLUGIN(gz::sim::ImuUDPPlugin,
               gz::sim::System,
-              gz::sim::ISystemConfigure)
+              gz::sim::ISystemConfigure,
+              gz::sim::ISystemPostUpdate)
 
 GZ_ADD_PLUGIN_ALIAS(gz::sim::ImuUDPPlugin, "imu_udp_plugin")
